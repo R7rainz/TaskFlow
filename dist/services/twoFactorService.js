@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.verifyAndEnable2FA = exports.setup2FA = void 0;
+exports.generateBackupCodes = exports.verifyAndEnable2FA = exports.setup2FA = void 0;
 const speakeasy_1 = __importDefault(require("speakeasy"));
 const qrcode_1 = __importDefault(require("qrcode"));
 const prisma_1 = require("../../generate/prisma");
@@ -68,3 +68,7 @@ const verifyAndEnable2FA = async (userId, tempEncryptedSecret, otpCode, backupCo
     });
 };
 exports.verifyAndEnable2FA = verifyAndEnable2FA;
+const generateBackupCodes = () => {
+    return Array.from({ length: 7 }, () => Math.random().toString(36).slice(-8).toUpperCase());
+};
+exports.generateBackupCodes = generateBackupCodes;

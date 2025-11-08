@@ -1,7 +1,11 @@
 import { Request, Response, NextFunction } from "express";
 import { PrismaClient } from "../../generate/prisma";
-import { setup2FA, verifyAndEnable2FA } from "../services/twoFactorService";
-import { generateBackupCodes } from "../services/twoFactorService";
+import {
+  setup2FA,
+  verify2FAWithBackupCodes,
+  verify2FAWithOTP,
+} from "../services/twoFactorService";
+import speakeasy from "speakeasy";
 
 const prisma = new PrismaClient();
 
@@ -36,30 +40,30 @@ export const setup2FAController = async (
   }
 };
 
-export const verifyAndEnable2FAController = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
-  try {
-    const userId = (req as any).user.userId;
-    const { otpCode, tempEncryptedSecret, backupCodes } = req.body;
-
-    if (!otpCode || !tempEncryptedSecret || !backupCodes) {
-      return res.status(400).json({ error: "Missing required fields " });
-    }
-
-    await verifyAndEnable2FA(
-      userId.toString(),
-      tempEncryptedSecret,
-      otpCode,
-      backupCodes,
-    );
-    res.json({ message: "2FA enabled successfully" });
-  } catch (err) {
-    next(err);
-  }
-};
+// export const verifyAndEnable2FAController = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction,
+// ) => {
+//   try {
+//     const userId = (req as any).user.userId;
+//     const { otpCode, tempEncryptedSecret, backupCodes } = req.body;
+//
+//     if (!otpCode || !tempEncryptedSecret || !backupCodes) {
+//       return res.status(400).json({ error: "Missing required fields " });
+//     }
+//
+//     await verifyAndEnable2FA(
+//       userId.toString(),
+//       tempEncryptedSecret,
+//       otpCode,
+//       backupCodes,
+//     );
+//     res.json({ message: "2FA enabled successfully" });
+//   } catch (err) {
+//     next(err);
+//   }
+// };
 
 export const verify2FAWithOTPController = async (
   req: Request,
@@ -69,12 +73,12 @@ export const verify2FAWithOTPController = async (
   try {
     const userId = (req as any).user.userId;
     const { otpCode, tempEncryptedSecret } = req.body;
-    //TODO: Add validation
+
     if (!otpCode || !tempEncryptedSecret) {
       return res.status(400).json({ error: "Missing required fields" });
     }
     if (typeof otpCode !== "string" || otpCode.length !== 6) {
-      return res.status(400).json({ error: "OTP code must be of 6 digits" });
+      return res.status(400).json({ error: "OTP Code must be of 6 digit" });
     }
     if (!/^\d{6}$/.test(otpCode)) {
       return res
@@ -82,17 +86,15 @@ export const verify2FAWithOTPController = async (
         .json({ error: "OTP code must contain only numbers" });
     }
 
-    const backupCodes = generateBackupCodes();
-
-    await verifyAndEnable2FA(
+    const result = await verify2FAWithOTP(
       userId.toString(),
       tempEncryptedSecret,
       otpCode,
-      backupCodes,
     );
+
     res.json({
       message: "2FA verified successfully",
-      backupCodes: backupCodes,
+      backupCodes: result.backupCodes,
     });
   } catch (err) {
     next(err);
@@ -106,22 +108,23 @@ export const verify2FAWithBackupCodeController = async (
 ) => {
   try {
     const userId = (req as any).user.userId;
-    const { backupCode, backupCodes } = req.body;
+    const { backupCode, userEmail } = req.body;
 
-    if (!backupCode || !backupCodes) {
-      return res.status(404).json({ error: "Missing required fields" });
-    }
-    if (typeof backupCode !== "string" || backupCode.length < 6) {
-      return res.status(400).json({ error: "Invalid backup code format" });
-    }
-    if (!Array.isArray(backupCodes)) {
-      return res.status(400).json({ error: "Backup codes must be an array" });
+    if (!backupCode || !userEmail) {
+      return res.status(400).json({ error: "Missing required fields" });
     }
 
-    //TODO: verify backup codes exists in the array
-    if (!backupCodes.includes(backupCode)) {
-      return res.json(400).json({ error: "Invalid backup code " });
-    }
+    const result = await verify2FAWithBackupCodes(
+      userId,
+      backupCode,
+      userEmail,
+    );
+    return res.json({
+      message: "2FA verified successfully",
+      backupCodes: result.backupCodes,
+      newSecret: result.newSecret,
+      qrCodeDataURL: result.qrCodeDataURL,
+    });
   } catch (err) {
     next(err);
   }
