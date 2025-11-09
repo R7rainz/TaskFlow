@@ -21,12 +21,30 @@ exports.register = register;
 const login = async (req, res, next) => {
     try {
         const { email, password } = req.body;
-        const { token, user, refreshToken } = await (0, authServices_1.loginUser)(email, password);
-        res.status(201).json({
+        const result = await (0, authServices_1.loginUser)(email, password);
+        if (result.requires2FA) {
+            return res.status(200).json({
+                message: "Two-factor authentication required",
+                requires2Fa: true,
+                userId: result.userId,
+            });
+        }
+        // Ensure user object is present before accessing its properties.
+        const user = result.user;
+        if (!user) {
+            // If the service didn't return a user when not requiring 2FA, treat it as an error.
+            const err = new Error("User data missing from login result");
+            return next(err);
+        }
+        res.status(200).json({
             message: "User logged in successfully",
-            token,
-            user: { id: user.id, name: user.name, email: user.email },
-            refreshToken,
+            token: result.token,
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+            },
+            refreshToken: result.refreshToken,
         });
     }
     catch (err) {

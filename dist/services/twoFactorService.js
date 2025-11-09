@@ -16,12 +16,7 @@ const setup2FA = async (userId, userEmail) => {
             name: `TaskFlow (${userEmail})`,
             issuer: "TaskFlow",
         });
-        const otpath_url = speakeasy_1.default.otpauthURL({
-            secret: secret.base32,
-            label: userEmail,
-            issuer: "TaskFlow",
-        });
-        const qrCodeDataURL = await qrcode_1.default.toDataURL(otpath_url);
+        const qrCodeDataURL = await qrcode_1.default.toDataURL(secret.otpauth_url);
         const backupCodes = Array.from({ length: 7 }, () => {
             return Math.random().toString(36).slice(-8).toUpperCase();
         });
@@ -42,10 +37,6 @@ const verify2FAWithOTP = async (userId, tempEncryptedSecret, otpCode, backupCode
     if (!process.env.ENCRYPTION_KEY) {
         throw new Error("Encryption key not configured");
     }
-    // const backupCodes = Array.from(
-    //   { length: 7 },
-    //   () => Math.random().toString(36).slice(-8).toUpperCase(), //if there were curly braces we would have specified the keyword return otherwise its not required
-    // );
     const decryptedBytes = crypto_js_1.default.AES.decrypt(tempEncryptedSecret, process.env.ENCRYPTION_KEY);
     const decryptedSecret = decryptedBytes.toString(crypto_js_1.default.enc.Utf8);
     const isVerified = speakeasy_1.default.totp.verify({
@@ -54,8 +45,9 @@ const verify2FAWithOTP = async (userId, tempEncryptedSecret, otpCode, backupCode
         token: otpCode,
         window: 1,
     });
-    if (!isVerified)
-        throw new Error("Invalid OTP Secret");
+    if (!isVerified) {
+        throw new Error("Invalid OTP code");
+    }
     const encryptedSecret = crypto_js_1.default.AES.encrypt(decryptedSecret, process.env.ENCRYPTION_KEY).toString();
     const encryptedBackupcodes = crypto_js_1.default.AES.encrypt(JSON.stringify(backupCodes), process.env.ENCRYPTION_KEY).toString();
     await prisma.user.update({

@@ -22,13 +22,29 @@ const registerUser = async (name, email, password) => {
 };
 exports.registerUser = registerUser;
 const loginUser = async (email, password) => {
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({
+        where: { email },
+        // select: {
+        //   id: true,
+        //   name: true,
+        //   email: true,
+        //   password: true,
+        //   twoFactorEnabled: true,
+        // },
+    });
     if (!user)
         throw new Error("User not found, please register");
     //checking if password is valid (the password is what we get from the body the user.password is from the database obv)
     const valid = await bcryptjs_1.default.compare(password, user.password);
     if (!valid)
         throw new Error("Invalid password");
+    if (user.twoFactorEnabled) {
+        return {
+            requires2FA: true,
+            userId: user.id,
+            message: "Two-factor authentication required",
+        };
+    }
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
         throw new Error("JWT_SECRET environment variable is not set");

@@ -11,7 +11,7 @@ import { sendResetEmail } from "../services/emailService";
 export const register = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { name, email, password } = req.body;
@@ -28,16 +28,35 @@ export const register = async (
 export const login = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { email, password } = req.body;
-    const { token, user, refreshToken } = await loginUser(email, password);
-    res.status(201).json({
+    const result = await loginUser(email, password);
+
+    if (result.requires2FA) {
+      return res.status(200).json({
+        message: "Two-factor authentication required",
+        requires2Fa: true,
+        userId: result.userId,
+      });
+    }
+
+    const user = result.user;
+    if (!user) {
+      const err = new Error("User data missing from login result");
+      return next(err);
+    }
+
+    res.status(200).json({
       message: "User logged in successfully",
-      token,
-      user: { id: user.id, name: user.name, email: user.email },
-      refreshToken,
+      token: result.token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      },
+      refreshToken: result.refreshToken,
     });
   } catch (err) {
     next(err);
@@ -47,7 +66,7 @@ export const login = async (
 export const refreshToken = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { refreshToken, userId } = req.body;
@@ -75,7 +94,7 @@ export const refreshToken = async (
 export const forgotPassword = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { email } = req.body;
@@ -93,7 +112,7 @@ export const forgotPassword = async (
 export const resetPasswordController = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { token, newPassword } = req.body;

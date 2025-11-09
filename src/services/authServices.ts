@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
 export const registerUser = async (
   name: string,
   email: string,
-  password: string
+  password: string,
 ) => {
   //checking if the email already exists in the database
   const existing = await prisma.user.findUnique({ where: { email } });
@@ -23,12 +23,29 @@ export const registerUser = async (
 };
 
 export const loginUser = async (email: string, password: string) => {
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findUnique({
+    where: { email },
+    // select: {
+    //   id: true,
+    //   name: true,
+    //   email: true,
+    //   password: true,
+    //   twoFactorEnabled: true,
+    // },
+  });
   if (!user) throw new Error("User not found, please register");
 
   //checking if password is valid (the password is what we get from the body the user.password is from the database obv)
   const valid = await bcrypt.compare(password, user.password);
   if (!valid) throw new Error("Invalid password");
+
+  if (user.twoFactorEnabled) {
+    return {
+      requires2FA: true,
+      userId: user.id,
+      message: "Two-factor authentication required",
+    };
+  }
 
   const jwtSecret = process.env.JWT_SECRET;
   if (!jwtSecret) {
@@ -106,7 +123,7 @@ export const initiatePasswordReset = async (email: string) => {
 
 export const resetPassword = async (
   resetToken: string,
-  newPassword: string
+  newPassword: string,
 ) => {
   const tokenRecord = await prisma.passwordResetToken.findUnique({
     where: { token: resetToken },
