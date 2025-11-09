@@ -2,7 +2,6 @@ import speakeasy from "speakeasy";
 import Qrcode from "qrcode";
 import { PrismaClient } from "../../generate/prisma";
 import CryptoJS from "crypto-js";
-import { selectFields } from "express-validator/lib/field-selection";
 
 const prisma = new PrismaClient();
 
@@ -14,24 +13,22 @@ export const setup2FA = async (userId: string, userEmail: string) => {
       issuer: "TaskFlow",
     });
 
-    const otpath_url = speakeasy.otpauthURL({
-      secret: secret.base32,
-      label: userEmail,
-      issuer: "TaskFlow",
-    });
-
-    const qrCodeDataURL = await Qrcode.toDataURL(otpath_url);
+    const qrCodeDataURL = await Qrcode.toDataURL(secret.otpauth_url!);
 
     const backupCodes = Array.from({ length: 7 }, () => {
       return Math.random().toString(36).slice(-8).toUpperCase();
     });
 
+    const encryptedSecret = CryptoJS.AES.encrypt(
+      secret.base32!,
+      process.env.ENCRYPTION_KEY!,
+    ).toString();
+
     return {
       qrCodeDataURL,
       manualEntryCode: secret.base32,
       backupCodes,
-      // encryptedSecret,
-      // encryptedBackupCodes,
+      encryptedSecret,
     };
   } catch (error: any) {
     throw new Error("2FA setup failed: " + error.message);
@@ -42,15 +39,11 @@ export const verify2FAWithOTP = async (
   userId: string,
   tempEncryptedSecret: string,
   otpCode: string,
+  backupCodes: string[],
 ) => {
   if (!process.env.ENCRYPTION_KEY) {
     throw new Error("Encryption key not configured");
   }
-
-  const backupCodes = Array.from(
-    { length: 7 },
-    () => Math.random().toString(36).slice(-8).toUpperCase(), //if there were curly braces we would have specified the keyword return otherwise its not required
-  );
 
   const decryptedBytes = CryptoJS.AES.decrypt(
     tempEncryptedSecret,
@@ -66,7 +59,9 @@ export const verify2FAWithOTP = async (
     window: 1,
   });
 
-  if (!isVerified) throw new Error("Invalid OTP Secret");
+  if (!isVerified) {
+    throw new Error("Invalid OTP code");
+  }
 
   const encryptedSecret = CryptoJS.AES.encrypt(
     decryptedSecret,
@@ -152,7 +147,7 @@ export const verify2FAWithBackupCodes = async (
       data: {
         twoFactorBackupCodes: updatedEncryptedBackupCodes,
         twoFactorSecret: CryptoJS.AES.encrypt(
-          newSecret.base32,
+          newSecret.base32!,
           process.env.ENCRYPTION_KEY,
         ).toString(),
       },

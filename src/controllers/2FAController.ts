@@ -34,6 +34,7 @@ export const setup2FAController = async (
       qrCode: result.qrCodeDataURL,
       manualEntryCode: result.manualEntryCode,
       backupCodes: result.backupCodes,
+      encryptedSecret: result.encryptedSecret,
     });
   } catch (error: unknown) {
     next(error);
@@ -72,9 +73,9 @@ export const verify2FAWithOTPController = async (
 ) => {
   try {
     const userId = (req as any).user.userId;
-    const { otpCode, tempEncryptedSecret } = req.body;
+    const { otpCode, tempEncryptedSecret, backupCodes } = req.body;
 
-    if (!otpCode || !tempEncryptedSecret) {
+    if (!otpCode || !tempEncryptedSecret || !backupCodes) {
       return res.status(400).json({ error: "Missing required fields" });
     }
     if (typeof otpCode !== "string" || otpCode.length !== 6) {
@@ -90,6 +91,7 @@ export const verify2FAWithOTPController = async (
       userId.toString(),
       tempEncryptedSecret,
       otpCode,
+      backupCodes,
     );
 
     res.json({

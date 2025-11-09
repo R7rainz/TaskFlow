@@ -5,6 +5,6 @@ const _2FAController_1 = require("../../controllers/2FAController");
 const authMiddleware_1 = require("../../middleware/authMiddleware");
 const router = (0, express_1.Router)();
 router.get("/setup", authMiddleware_1.authenticate, _2FAController_1.setup2FAController);
-router.get("/verify-otp", authMiddleware_1.authenticate, _2FAController_1.verify2FAWithOTPController);
-router.get("/verify-backup", authMiddleware_1.authenticate, _2FAController_1.verify2FAWithBackupCodeController);
+router.post("/verify-otp", authMiddleware_1.authenticate, _2FAController_1.verify2FAWithOTPController);
+router.post("/verify-backup", authMiddleware_1.authenticate, _2FAController_1.verify2FAWithBackupCodeController);
 exports.default = router;
