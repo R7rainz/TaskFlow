@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.verify2FAWithBackupCodeController = exports.verify2FAWithOTPController = exports.setup2FAController = void 0;
+exports.verifyLoginWithOTPController = exports.verify2FAWithBackupCodeController = exports.verify2FAWithOTPController = exports.setup2FAController = void 0;
 const prisma_1 = require("../../generate/prisma");
 const twoFactorService_1 = require("../services/twoFactorService");
 const prisma = new prisma_1.PrismaClient();
@@ -30,30 +30,6 @@ const setup2FAController = async (req, res, next) => {
     }
 };
 exports.setup2FAController = setup2FAController;
-// export const verifyAndEnable2FAController = async (
-//   req: Request,
-//   res: Response,
-//   next: NextFunction,
-// ) => {
-//   try {
-//     const userId = (req as any).user.userId;
-//     const { otpCode, tempEncryptedSecret, backupCodes } = req.body;
-//
-//     if (!otpCode || !tempEncryptedSecret || !backupCodes) {
-//       return res.status(400).json({ error: "Missing required fields " });
-//     }
-//
-//     await verifyAndEnable2FA(
-//       userId.toString(),
-//       tempEncryptedSecret,
-//       otpCode,
-//       backupCodes,
-//     );
-//     res.json({ message: "2FA enabled successfully" });
-//   } catch (err) {
-//     next(err);
-//   }
-// };
 const verify2FAWithOTPController = async (req, res, next) => {
     try {
         const userId = req.user.userId;
@@ -100,3 +76,24 @@ const verify2FAWithBackupCodeController = async (req, res, next) => {
     }
 };
 exports.verify2FAWithBackupCodeController = verify2FAWithBackupCodeController;
+const verifyLoginWithOTPController = async (req, res, next) => {
+    try {
+        const { userId, otpCode } = req.body;
+        if (!userId || !otpCode) {
+            return res.status(400).json({ error: "Missing required fields" });
+        }
+        const result = await (0, twoFactorService_1.verifyLoginWithOTP)(userId, otpCode);
+        res
+            .status(200)
+            .json({
+            message: "Login successfull",
+            user: result.user,
+            token: result.token,
+            refreshToken: result.refreshToken,
+        });
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.verifyLoginWithOTPController = verifyLoginWithOTPController;

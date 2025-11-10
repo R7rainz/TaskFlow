@@ -29,10 +29,8 @@ const login = async (req, res, next) => {
                 userId: result.userId,
             });
         }
-        // Ensure user object is present before accessing its properties.
         const user = result.user;
         if (!user) {
-            // If the service didn't return a user when not requiring 2FA, treat it as an error.
             const err = new Error("User data missing from login result");
             return next(err);
         }

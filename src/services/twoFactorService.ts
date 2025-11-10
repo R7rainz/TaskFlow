@@ -2,6 +2,8 @@ import speakeasy from "speakeasy";
 import Qrcode from "qrcode";
 import { PrismaClient } from "../../generate/prisma";
 import CryptoJS from "crypto-js";
+import jwt from "jsonwebtoken";
+import crypto from "crypto";
 
 const prisma = new PrismaClient();
 
@@ -160,5 +162,58 @@ export const verify2FAWithBackupCodes = async (
     };
   } catch (err: any) {
     throw new Error("2FA backup verification failed: " + err.message);
+  }
+};
+
+export const verifyLoginWithOTP = async (userId: string, otpCode: string) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: parseInt(userId) },
+      select: {
+        twoFactorEnabled: true,
+        twoFactorSecret: true,
+        id: true,
+        name: true,
+        email: true,
+      },
+    });
+    if (!user) {
+      throw new Error("User not found");
+    }
+    if (!user.twoFactorSecret) throw new Error("2FA not enabled for this user");
+    if (!process.env.ENCRYPTION_KEY) {
+      throw new Error("Encryption key not configured");
+    }
+
+    const decryptedBytes = CryptoJS.AES.decrypt(
+      user.twoFactorSecret,
+      process.env.ENCRYPTION_KEY,
+    );
+
+    const decryptedSecret = decryptedBytes.toString(CryptoJS.enc.Utf8);
+
+    const isVerified = speakeasy.totp.verify({
+      secret: decryptedSecret,
+      encoding: "base32",
+      token: otpCode,
+      window: 1,
+    });
+
+    if (!isVerified) throw new Error("Invalid OTP Code");
+
+    //returning tokens
+    const jwtSecret = process.env.JWT_SECRET!;
+    const token = jwt.sign({ userId: user.id }, jwtSecret, {
+      expiresIn: "15m",
+    });
+    const refreshToken = crypto.randomBytes(32).toString("hex");
+
+    return {
+      user: { id: user.id, name: user.name, email: user.email },
+      token,
+      refreshToken,
+    };
+  } catch (err: any) {
+    throw new Error("2FA login verification failed: " + err.message);
   }
 };

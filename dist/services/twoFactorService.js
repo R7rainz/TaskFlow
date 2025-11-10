@@ -3,11 +3,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.verify2FAWithBackupCodes = exports.verify2FAWithOTP = exports.setup2FA = void 0;
+exports.verifyLoginWithOTP = exports.verify2FAWithBackupCodes = exports.verify2FAWithOTP = exports.setup2FA = void 0;
 const speakeasy_1 = __importDefault(require("speakeasy"));
 const qrcode_1 = __importDefault(require("qrcode"));
 const prisma_1 = require("../../generate/prisma");
 const crypto_js_1 = __importDefault(require("crypto-js"));
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const crypto_1 = __importDefault(require("crypto"));
 const prisma = new prisma_1.PrismaClient();
 const setup2FA = async (userId, userEmail) => {
     try {
@@ -111,3 +113,50 @@ const verify2FAWithBackupCodes = async (userId, backupCode, userEmail) => {
     }
 };
 exports.verify2FAWithBackupCodes = verify2FAWithBackupCodes;
+const verifyLoginWithOTP = async (userId, otpCode) => {
+    try {
+        const user = await prisma.user.findUnique({
+            where: { id: parseInt(userId) },
+            select: {
+                twoFactorEnabled: true,
+                twoFactorSecret: true,
+                id: true,
+                name: true,
+                email: true,
+            },
+        });
+        if (!user) {
+            throw new Error("User not found");
+        }
+        if (!user.twoFactorSecret)
+            throw new Error("2FA not enabled for this user");
+        if (!process.env.ENCRYPTION_KEY) {
+            throw new Error("Encryption key not configured");
+        }
+        const decryptedBytes = crypto_js_1.default.AES.decrypt(user.twoFactorSecret, process.env.ENCRYPTION_KEY);
+        const decryptedSecret = decryptedBytes.toString(crypto_js_1.default.enc.Utf8);
+        const isVerified = speakeasy_1.default.totp.verify({
+            secret: decryptedSecret,
+            encoding: "base32",
+            token: otpCode,
+            window: 1,
+        });
+        if (!isVerified)
+            throw new Error("Invalid OTP Code");
+        //returning tokens
+        const jwtSecret = process.env.JWT_SECRET;
+        const token = jsonwebtoken_1.default.sign({ userId: user.id }, jwtSecret, {
+            expiresIn: "15m",
+        });
+        const refreshToken = crypto_1.default.randomBytes(32).toString("hex");
+        return {
+            user: { id: user.id, name: user.name, email: user.email },
+            token,
+            refreshToken,
+        };
+    }
+    catch (err) {
+        throw new Error("2FA login verification failed: " + err.message);
+    }
+};
+exports.verifyLoginWithOTP = verifyLoginWithOTP;

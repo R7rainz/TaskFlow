@@ -4,8 +4,8 @@ import {
   setup2FA,
   verify2FAWithBackupCodes,
   verify2FAWithOTP,
+  verifyLoginWithOTP,
 } from "../services/twoFactorService";
-import speakeasy from "speakeasy";
 
 const prisma = new PrismaClient();
 
@@ -40,31 +40,6 @@ export const setup2FAController = async (
     next(error);
   }
 };
-
-// export const verifyAndEnable2FAController = async (
-//   req: Request,
-//   res: Response,
-//   next: NextFunction,
-// ) => {
-//   try {
-//     const userId = (req as any).user.userId;
-//     const { otpCode, tempEncryptedSecret, backupCodes } = req.body;
-//
-//     if (!otpCode || !tempEncryptedSecret || !backupCodes) {
-//       return res.status(400).json({ error: "Missing required fields " });
-//     }
-//
-//     await verifyAndEnable2FA(
-//       userId.toString(),
-//       tempEncryptedSecret,
-//       otpCode,
-//       backupCodes,
-//     );
-//     res.json({ message: "2FA enabled successfully" });
-//   } catch (err) {
-//     next(err);
-//   }
-// };
 
 export const verify2FAWithOTPController = async (
   req: Request,
@@ -127,6 +102,32 @@ export const verify2FAWithBackupCodeController = async (
       newSecret: result.newSecret,
       qrCodeDataURL: result.qrCodeDataURL,
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const verifyLoginWithOTPController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { userId, otpCode } = req.body;
+    if (!userId || !otpCode) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    const result = await verifyLoginWithOTP(userId, otpCode);
+
+    res
+      .status(200)
+      .json({
+        message: "Login successfull",
+        user: result.user,
+        token: result.token,
+        refreshToken: result.refreshToken,
+      });
   } catch (err) {
     next(err);
   }
