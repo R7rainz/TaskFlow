@@ -7,7 +7,7 @@ import crypto from "crypto";
 
 const prisma = new PrismaClient();
 
-export const setup2FA = async (userId: string, userEmail: string) => {
+export const setup2FA = async (userEmail: string) => {
   try {
     const secret = speakeasy.generateSecret({
       length: 20,
@@ -215,5 +215,69 @@ export const verifyLoginWithOTP = async (userId: string, otpCode: string) => {
     };
   } catch (err: any) {
     throw new Error("2FA login verification failed: " + err.message);
+  }
+};
+
+export const verifyLoginWithBackupCodes = async (
+  userId: string,
+  backupCode: string,
+) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: parseInt(userId) },
+      select: {
+        twoFactorEnabled: true,
+        twoFactorBackupCodes: true,
+        id: true,
+        name: true,
+        email: true,
+      },
+    });
+
+    if (!user) throw new Error("User not found");
+    if (!user.twoFactorBackupCodes) throw new Error("BackupCodes not found");
+    if (!process.env.ENCRYPTION_KEY)
+      throw new Error("Encryption key not found");
+
+    const decryptedBackupCodes = CryptoJS.AES.decrypt(
+      user.twoFactorBackupCodes,
+      process.env.ENCRYPTION_KEY,
+    );
+
+    const decryptedBackupCodesArray = JSON.parse(
+      decryptedBackupCodes.toString(CryptoJS.enc.Utf8),
+    );
+
+    const codeIndex = decryptedBackupCodesArray.indexOf(backupCode);
+    if (codeIndex === -1) throw new Error("Invalid backup code");
+
+    decryptedBackupCodesArray.splice(codeIndex, 1);
+
+    const updatedEncryptedBackupCodes = CryptoJS.AES.encrypt(
+      JSON.stringify(decryptedBackupCodesArray),
+      process.env.ENCRYPTION_KEY,
+    ).toString();
+
+    await prisma.user.update({
+      where: { id: parseInt(userId) },
+      data: {
+        twoFactorBackupCodes: updatedEncryptedBackupCodes,
+      },
+    });
+
+    const jwtSecret = process.env.JWT_SECRET!;
+    const token = jwt.sign({ userId: user.id }, jwtSecret, {
+      expiresIn: "15m",
+    });
+    const refreshToken = crypto.randomBytes(32).toString("hex");
+
+    return {
+      user: { id: user.id, name: user.name, email: user.email },
+      token,
+      refreshToken,
+      remainingBackupCodes: decryptedBackupCodesArray.length,
+    };
+  } catch (err: any) {
+    throw new Error("BackupCodes login verification failed");
   }
 };

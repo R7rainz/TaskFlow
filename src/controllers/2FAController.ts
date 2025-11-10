@@ -4,6 +4,7 @@ import {
   setup2FA,
   verify2FAWithBackupCodes,
   verify2FAWithOTP,
+  verifyLoginWithBackupCodes,
   verifyLoginWithOTP,
 } from "../services/twoFactorService";
 
@@ -27,7 +28,7 @@ export const setup2FAController = async (
     }
 
     // 3. Call setup2FA service
-    const result = await setup2FA(userId.toString(), user.email);
+    const result = await setup2FA(user.email);
 
     // 4. Decide what to return to frontend
     res.json({
@@ -91,6 +92,12 @@ export const verify2FAWithBackupCodeController = async (
       return res.status(400).json({ error: "Missing required fields" });
     }
 
+    if (typeof backupCode !== "string" || backupCode.length !== 7) {
+      return res
+        .status(400)
+        .json({ error: "Backup code must be 8 characters" });
+    }
+
     const result = await verify2FAWithBackupCodes(
       userId,
       backupCode,
@@ -120,14 +127,42 @@ export const verifyLoginWithOTPController = async (
 
     const result = await verifyLoginWithOTP(userId, otpCode);
 
-    res
-      .status(200)
-      .json({
-        message: "Login successfull",
-        user: result.user,
-        token: result.token,
-        refreshToken: result.refreshToken,
-      });
+    res.status(200).json({
+      message: "Login successfull",
+      user: result.user,
+      token: result.token,
+      refreshToken: result.refreshToken,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const verifyLoginWithBackupController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { userId, backupCode } = req.body;
+    if (!userId || !backupCode) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    if (typeof backupCode !== "string" || backupCode.length !== 7) {
+      return res
+        .status(400)
+        .json({ error: "Backup code must be 8 characters" });
+    }
+    const result = await verifyLoginWithBackupCodes(userId, backupCode);
+
+    res.status(200).json({
+      message: "Login successfull",
+      user: result.user,
+      token: result.token,
+      refreshToken: result.refreshToken,
+      remainingBackupCodes: result.remainingBackupCodes,
+    });
   } catch (err) {
     next(err);
   }

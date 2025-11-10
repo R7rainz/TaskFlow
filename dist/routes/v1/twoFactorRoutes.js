@@ -7,5 +7,6 @@ const router = (0, express_1.Router)();
 router.get("/setup", authMiddleware_1.authenticate, _2FAController_1.setup2FAController);
 router.post("/verify-otp", authMiddleware_1.authenticate, _2FAController_1.verify2FAWithOTPController);
 router.post("/verify-backup", authMiddleware_1.authenticate, _2FAController_1.verify2FAWithBackupCodeController);
-router.post("/verify-2fa-login", authMiddleware_1.authenticate, _2FAController_1.verifyLoginWithOTPController);
+router.post("/verify-loginOTP-2fa", _2FAController_1.verifyLoginWithOTPController);
+router.post("/verify-loginbackupCode-2fa", _2FAController_1.verifyLoginWithBackupController);
 exports.default = router;

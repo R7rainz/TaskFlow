@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.verifyLoginWithOTPController = exports.verify2FAWithBackupCodeController = exports.verify2FAWithOTPController = exports.setup2FAController = void 0;
+exports.verifyLoginWithBackupController = exports.verifyLoginWithOTPController = exports.verify2FAWithBackupCodeController = exports.verify2FAWithOTPController = exports.setup2FAController = void 0;
 const prisma_1 = require("../../generate/prisma");
 const twoFactorService_1 = require("../services/twoFactorService");
 const prisma = new prisma_1.PrismaClient();
@@ -16,7 +16,7 @@ const setup2FAController = async (req, res, next) => {
             return res.status(404).json({ message: "User not found" });
         }
         // 3. Call setup2FA service
-        const result = await (0, twoFactorService_1.setup2FA)(userId.toString(), user.email);
+        const result = await (0, twoFactorService_1.setup2FA)(user.email);
         // 4. Decide what to return to frontend
         res.json({
             qrCode: result.qrCodeDataURL,
@@ -63,6 +63,11 @@ const verify2FAWithBackupCodeController = async (req, res, next) => {
         if (!backupCode || !userEmail) {
             return res.status(400).json({ error: "Missing required fields" });
         }
+        if (typeof backupCode !== "string" || backupCode.length !== 7) {
+            return res
+                .status(400)
+                .json({ error: "Backup code must be 8 characters" });
+        }
         const result = await (0, twoFactorService_1.verify2FAWithBackupCodes)(userId, backupCode, userEmail);
         return res.json({
             message: "2FA verified successfully",
@@ -83,9 +88,7 @@ const verifyLoginWithOTPController = async (req, res, next) => {
             return res.status(400).json({ error: "Missing required fields" });
         }
         const result = await (0, twoFactorService_1.verifyLoginWithOTP)(userId, otpCode);
-        res
-            .status(200)
-            .json({
+        res.status(200).json({
             message: "Login successfull",
             user: result.user,
             token: result.token,
@@ -97,3 +100,28 @@ const verifyLoginWithOTPController = async (req, res, next) => {
     }
 };
 exports.verifyLoginWithOTPController = verifyLoginWithOTPController;
+const verifyLoginWithBackupController = async (req, res, next) => {
+    try {
+        const { userId, backupCode } = req.body;
+        if (!userId || !backupCode) {
+            return res.status(400).json({ error: "Missing required fields" });
+        }
+        if (typeof backupCode !== "string" || backupCode.length !== 7) {
+            return res
+                .status(400)
+                .json({ error: "Backup code must be 8 characters" });
+        }
+        const result = await (0, twoFactorService_1.verifyLoginWithBackupCodes)(userId, backupCode);
+        res.status(200).json({
+            message: "Login successfull",
+            user: result.user,
+            token: result.token,
+            refreshToken: result.refreshToken,
+            remainingBackupCodes: result.remainingBackupCodes,
+        });
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.verifyLoginWithBackupController = verifyLoginWithBackupController;

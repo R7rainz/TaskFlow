@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.verifyLoginWithOTP = exports.verify2FAWithBackupCodes = exports.verify2FAWithOTP = exports.setup2FA = void 0;
+exports.verifyLoginWithBackupCodes = exports.verifyLoginWithOTP = exports.verify2FAWithBackupCodes = exports.verify2FAWithOTP = exports.setup2FA = void 0;
 const speakeasy_1 = __importDefault(require("speakeasy"));
 const qrcode_1 = __importDefault(require("qrcode"));
 const prisma_1 = require("../../generate/prisma");
@@ -11,7 +11,7 @@ const crypto_js_1 = __importDefault(require("crypto-js"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const crypto_1 = __importDefault(require("crypto"));
 const prisma = new prisma_1.PrismaClient();
-const setup2FA = async (userId, userEmail) => {
+const setup2FA = async (userEmail) => {
     try {
         const secret = speakeasy_1.default.generateSecret({
             length: 20,
@@ -160,3 +160,51 @@ const verifyLoginWithOTP = async (userId, otpCode) => {
     }
 };
 exports.verifyLoginWithOTP = verifyLoginWithOTP;
+const verifyLoginWithBackupCodes = async (userId, backupCode) => {
+    try {
+        const user = await prisma.user.findUnique({
+            where: { id: parseInt(userId) },
+            select: {
+                twoFactorEnabled: true,
+                twoFactorBackupCodes: true,
+                id: true,
+                name: true,
+                email: true,
+            },
+        });
+        if (!user)
+            throw new Error("User not found");
+        if (!user.twoFactorBackupCodes)
+            throw new Error("BackupCodes not found");
+        if (!process.env.ENCRYPTION_KEY)
+            throw new Error("Encryption key not found");
+        const decryptedBackupCodes = crypto_js_1.default.AES.decrypt(user.twoFactorBackupCodes, process.env.ENCRYPTION_KEY);
+        const decryptedBackupCodesArray = JSON.parse(decryptedBackupCodes.toString(crypto_js_1.default.enc.Utf8));
+        const codeIndex = decryptedBackupCodesArray.indexOf(backupCode);
+        if (codeIndex === -1)
+            throw new Error("Invalid backup code");
+        decryptedBackupCodesArray.splice(codeIndex, 1);
+        const updatedEncryptedBackupCodes = crypto_js_1.default.AES.encrypt(JSON.stringify(decryptedBackupCodesArray), process.env.ENCRYPTION_KEY).toString();
+        await prisma.user.update({
+            where: { id: parseInt(userId) },
+            data: {
+                twoFactorBackupCodes: updatedEncryptedBackupCodes,
+            },
+        });
+        const jwtSecret = process.env.JWT_SECRET;
+        const token = jsonwebtoken_1.default.sign({ userId: user.id }, jwtSecret, {
+            expiresIn: "15m",
+        });
+        const refreshToken = crypto_1.default.randomBytes(32).toString("hex");
+        return {
+            user: { id: user.id, name: user.name, email: user.email },
+            token,
+            refreshToken,
+            remainingBackupCodes: decryptedBackupCodesArray.length,
+        };
+    }
+    catch (err) {
+        throw new Error("BackupCodes login verification failed");
+    }
+};
+exports.verifyLoginWithBackupCodes = verifyLoginWithBackupCodes;
