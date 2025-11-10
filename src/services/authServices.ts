@@ -144,3 +144,37 @@ export const resetPassword = async (
 
   return true;
 };
+
+export const logoutUser = async (
+  userId: string,
+  refreshToken: string,
+  accessToken: string,
+) => {
+  const parts = accessToken.split(".");
+  if (parts.length !== 3) {
+    throw new Error("Invalid access token format");
+  }
+  const signature = parts[2];
+
+  const decoded = jwt.decode(accessToken) as { exp: number } | null;
+
+  if (!decoded || !decoded.exp) {
+    throw new Error("Invalid JWT token: cannot decide expiry");
+  }
+  const expiresAt = new Date(decoded.exp * 1000);
+
+  await prisma.blacklistedToken.create({
+    data: {
+      token: signature,
+      userId: parseInt(userId),
+      expiresAt: expiresAt,
+      reason: "logout",
+    },
+  });
+
+  await prisma.refreshToken.deleteMany({
+    where: { userId: parseInt(userId), token: refreshToken },
+  });
+
+  return { success: true };
+};

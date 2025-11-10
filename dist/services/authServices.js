@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.resetPassword = exports.initiatePasswordReset = exports.refresh = exports.loginUser = exports.registerUser = void 0;
+exports.logoutUser = exports.resetPassword = exports.initiatePasswordReset = exports.refresh = exports.loginUser = exports.registerUser = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const prisma_1 = require("../../generate/prisma");
@@ -131,3 +131,28 @@ const resetPassword = async (resetToken, newPassword) => {
     return true;
 };
 exports.resetPassword = resetPassword;
+const logoutUser = async (userId, refreshToken, accessToken) => {
+    const parts = accessToken.split(".");
+    if (parts.length !== 3) {
+        throw new Error("Invalid access token format");
+    }
+    const signature = parts[2];
+    const decoded = jsonwebtoken_1.default.decode(accessToken);
+    if (!decoded || !decoded.exp) {
+        throw new Error("Invalid JWT token: cannot decide expiry");
+    }
+    const expiresAt = new Date(decoded.exp * 1000);
+    await prisma.blacklistedToken.create({
+        data: {
+            token: signature,
+            userId: parseInt(userId),
+            expiresAt: expiresAt,
+            reason: "logout",
+        },
+    });
+    await prisma.refreshToken.deleteMany({
+        where: { userId: parseInt(userId), token: refreshToken },
+    });
+    return { success: true };
+};
+exports.logoutUser = logoutUser;

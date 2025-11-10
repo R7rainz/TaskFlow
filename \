@@ -7,7 +7,6 @@ import {
   verifyLoginWithBackupCodes,
   verifyLoginWithOTP,
 } from "../services/twoFactorService";
-import { logoutUser } from "../services/authServices";
 
 const prisma = new PrismaClient();
 
@@ -184,14 +183,6 @@ export const logoutController = async (
 
     const accessToken = authHeader.substring(7);
     const userId = (req as any).user.userId;
-    const refreshToken = req.body.refreshToken;
-
-    if (!refreshToken)
-      return res.status(400).json({ message: "Refresh token required" });
-
-    await logoutUser(userId, refreshToken, accessToken);
-
-    res.status(200).json({ message: "Logged out successfully" });
   } catch (err) {
     next(err);
   }

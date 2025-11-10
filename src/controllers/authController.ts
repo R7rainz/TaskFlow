@@ -5,6 +5,7 @@ import {
   refresh,
   initiatePasswordReset,
   resetPassword,
+  logoutUser,
 } from "../services/authServices";
 import { sendResetEmail } from "../services/emailService";
 //register function first
@@ -118,6 +119,36 @@ export const resetPasswordController = async (
     const { token, newPassword } = req.body;
     await resetPassword(token, newPassword);
     res.status(200).json({ message: "Password has been reset successfully" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const logoutController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer")) {
+      return res
+        .status(401)
+        .json({ message: "Authorization header missing or malformed" });
+    }
+
+    const accessToken = authHeader.substring(7);
+    const userId = (req as any).user.userId;
+    const refreshToken = req.body.refreshToken;
+
+    if (!refreshToken) {
+      return res
+        .status(400)
+        .json({ message: "Refresh token is required for logout" });
+    }
+
+    const result = await logoutUser(userId, refreshToken, accessToken);
+    res.status(200).json({ message: "User logged out successfully" });
   } catch (err) {
     next(err);
   }

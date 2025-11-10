@@ -5,6 +5,7 @@ import {
   refreshToken,
   forgotPassword,
   resetPasswordController,
+  logoutController,
 } from "../../controllers/authController";
 import { authenticate } from "../../middleware/authMiddleware";
 import {
@@ -42,3 +43,4 @@ router.post(
   validateResetPassword,
   resetPasswordController,
 );
+router.post("/logout", authenticate, logoutController);

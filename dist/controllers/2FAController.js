@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.verifyLoginWithBackupController = exports.verifyLoginWithOTPController = exports.verify2FAWithBackupCodeController = exports.verify2FAWithOTPController = exports.setup2FAController = void 0;
+exports.logoutController = exports.verifyLoginWithBackupController = exports.verifyLoginWithOTPController = exports.verify2FAWithBackupCodeController = exports.verify2FAWithOTPController = exports.setup2FAController = void 0;
 const prisma_1 = require("../../generate/prisma");
 const twoFactorService_1 = require("../services/twoFactorService");
 const prisma = new prisma_1.PrismaClient();
@@ -125,3 +125,19 @@ const verifyLoginWithBackupController = async (req, res, next) => {
     }
 };
 exports.verifyLoginWithBackupController = verifyLoginWithBackupController;
+const logoutController = async (req, res, next) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith("Bearer")) {
+            return res
+                .status(401)
+                .json({ message: "Authorzation header missing or malformed" });
+        }
+        const accessToken = authHeader.substring(7);
+        const userId = req.user.userId;
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.logoutController = logoutController;

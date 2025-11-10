@@ -31,6 +31,7 @@ model User {
   // Relations
   RefreshToken        RefreshToken[]
   PasswordResetToken  PasswordResetToken[]
+  BlacklistedToken    BlacklistedToken[] 
 }
 
 model RefreshToken {
@@ -50,4 +51,18 @@ model PasswordResetToken {
   expiresAt DateTime
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+model BlacklistedToken {
+  id         Int      @id @default(autoincrement())
+  token      String   @unique
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id])
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  reason     String?
+  
+  @@index([expiresAt])
+  @@index([userId])
+  @@index([createdAt])
 }
