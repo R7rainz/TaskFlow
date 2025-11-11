@@ -1,9 +1,14 @@
-import { Request, Response, NextFunction } from "express";
+import { Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-export const authenticate = (
-  req: Request,
+import { PrismaClient } from "../../generate/prisma";
+import { JwtPayload, AuthenticateRequest } from "../types/types";
+
+const prisma = new PrismaClient();
+
+export const authenticate = async (
+  req: AuthenticateRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   const authHeader = req.headers["authorization"];
 
@@ -14,12 +19,34 @@ export const authenticate = (
   const token = authHeader.split(" ")[1];
 
   try {
+    const signature = token.split(".")[2];
+    const blacklisted = await prisma.blacklistedToken.findFirst({
+      where: { token: signature, expiresAt: { gt: new Date() } },
+    });
+
+    if (blacklisted) {
+      return res
+        .status(401)
+        .json({ message: "Token revoked. Please login again" });
+    }
+
     const jwtsecret = process.env.JWT_SECRET;
     if (!jwtsecret) {
       return res.status(500).json({ message: "JWT secret not configured" });
     }
-    const decoded = jwt.verify(token, jwtsecret);
-    (req as any).user = decoded;
+    const decoded = jwt.verify(token, jwtsecret) as JwtPayload;
+    if (typeof decoded === "string") {
+      return res.status(401).json({ message: "Invalid token" });
+    }
+    req.user = decoded;
+
+    const dbUser = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: { tokenVersion: true },
+    });
+    if (!dbUser || dbUser.tokenVersion !== decoded.tokenVersion) {
+      return res.status(401).json({ message: "Token revoked" });
+    }
     next();
   } catch (err) {
     return res.status(401).json({ message: "Invalid token" });
