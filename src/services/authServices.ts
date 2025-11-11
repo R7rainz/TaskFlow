@@ -66,9 +66,13 @@ export const loginUser = async (email: string, password: string) => {
     throw new Error("Failed to create refresh token");
   }
 
-  const token = jwt.sign({ userId: user.id }, jwtSecret, {
-    expiresIn: "15m",
-  });
+  const token = jwt.sign(
+    { userId: user.id, tokenVersion: user.tokenVersion },
+    jwtSecret,
+    {
+      expiresIn: "15m",
+    },
+  );
 
   return {
     user: { id: user.id, name: user.name, email: user.email },

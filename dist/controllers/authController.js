@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.resetPasswordController = exports.forgotPassword = exports.refreshToken = exports.login = exports.register = void 0;
+exports.logoutController = exports.resetPasswordController = exports.forgotPassword = exports.refreshToken = exports.login = exports.register = void 0;
 const authServices_1 = require("../services/authServices");
 const emailService_1 = require("../services/emailService");
 //register function first
@@ -100,3 +100,27 @@ const resetPasswordController = async (req, res, next) => {
     }
 };
 exports.resetPasswordController = resetPasswordController;
+const logoutController = async (req, res, next) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith("Bearer")) {
+            return res
+                .status(401)
+                .json({ message: "Authorization header missing or malformed" });
+        }
+        const accessToken = authHeader.substring(7);
+        const userId = req.user.userId;
+        const refreshToken = req.body.refreshToken;
+        if (!refreshToken) {
+            return res
+                .status(400)
+                .json({ message: "Refresh token is required for logout" });
+        }
+        await (0, authServices_1.logoutUser)(userId, refreshToken, accessToken);
+        res.status(200).json({ message: "User logged out successfully" });
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.logoutController = logoutController;
