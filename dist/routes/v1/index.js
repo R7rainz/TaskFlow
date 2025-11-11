@@ -24,3 +24,4 @@ exports.router.get("/profile", rateLimiter_1.apiLimiter, authMiddleware_1.authen
 exports.router.post("/refresh", rateLimiter_1.refreshLimiter, authController_1.refreshToken);
 exports.router.post("/forgot-password", rateLimiter_1.authLimiter, authController_1.forgotPassword);
 exports.router.post("/reset-password", rateLimiter_1.authLimiter, passwordValidation_1.validateResetPassword, authController_1.resetPasswordController);
+exports.router.post("/logout", authMiddleware_1.authenticate, authController_1.logoutController);
