@@ -2,6 +2,7 @@ import express, { Request, Response } from "express";
 import { router } from "./routes/v1";
 import helmet from "helmet";
 import cors from "cors";
+import { startScheduleJobs } from "./services/schedulerServices";
 
 const app = express();
 app.use(express.json());
@@ -17,7 +18,7 @@ app.use(
       },
     },
     crossOriginEmbedderPolicy: false,
-  })
+  }),
 );
 
 app.use(
@@ -25,9 +26,10 @@ app.use(
     origin: process.env.FRONTEND_URL || "http://localhost:3000",
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  })
+  }),
 );
 
 app.use("/api/v1", router);
+startScheduleJobs();
 
 app.listen(process.env.PORT || 8000);
