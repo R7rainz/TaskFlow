@@ -21,6 +21,7 @@ model User {
   password            String
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
+  tokenVersion        Int      @default(1)
   
   // 2FA Fields
   twoFactorEnabled    Boolean  @default(false)
