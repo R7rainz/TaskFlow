@@ -58,6 +58,6 @@ export interface JwtPayload {
   exp?: number;
 }
 
-export interface AuthenticateRequest extends Request {
+export interface AuthenticatedRequest extends Request {
   user: JwtPayload;
 }
