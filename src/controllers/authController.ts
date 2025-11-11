@@ -8,9 +8,18 @@ import {
   logoutUser,
 } from "../services/authServices";
 import { sendResetEmail } from "../services/emailService";
+import {
+  AuthenticatedRequest,
+  RefreshBody,
+  ForgotPasswordBody,
+  ResetPasswordBody,
+  LogoutBody,
+  RegisterBody,
+  LoginBody,
+} from "../types/types";
 //register function first
 export const register = async (
-  req: Request,
+  req: Request<{}, {}, RegisterBody>,
   res: Response,
   next: NextFunction,
 ) => {
@@ -27,7 +36,7 @@ export const register = async (
 };
 
 export const login = async (
-  req: Request,
+  req: Request<{}, {}, LoginBody>,
   res: Response,
   next: NextFunction,
 ) => {
@@ -65,7 +74,7 @@ export const login = async (
 };
 
 export const refreshToken = async (
-  req: Request,
+  req: Request<{}, {}, RefreshBody>,
   res: Response,
   next: NextFunction,
 ) => {
@@ -78,22 +87,8 @@ export const refreshToken = async (
   }
 };
 
-// export const forgotPassword = async (
-//   req: Request,
-//   res: Response,
-//   next: NextFunction
-// ) => {
-//   try {
-//     const { email } = req.body;
-//     await initiatePasswordReset(email);
-//     res.status(200).json({ message: "Password reset email sent" });
-//   } catch (err) {
-//     next(err);
-//   }
-// };
-
 export const forgotPassword = async (
-  req: Request,
+  req: Request<{}, {}, ForgotPasswordBody>,
   res: Response,
   next: NextFunction,
 ) => {
@@ -111,7 +106,7 @@ export const forgotPassword = async (
 };
 
 export const resetPasswordController = async (
-  req: Request,
+  req: Request<{}, {}, ResetPasswordBody>,
   res: Response,
   next: NextFunction,
 ) => {
@@ -125,7 +120,7 @@ export const resetPasswordController = async (
 };
 
 export const logoutController = async (
-  req: Request,
+  req: AuthenticatedRequest & Request<{}, {}, LogoutBody>,
   res: Response,
   next: NextFunction,
 ) => {
@@ -138,7 +133,7 @@ export const logoutController = async (
     }
 
     const accessToken = authHeader.substring(7);
-    const userId = (req as any).user.userId;
+    const userId = req.user.userId;
     const refreshToken = req.body.refreshToken;
 
     if (!refreshToken) {
@@ -147,7 +142,7 @@ export const logoutController = async (
         .json({ message: "Refresh token is required for logout" });
     }
 
-    const result = await logoutUser(userId, refreshToken, accessToken);
+    await logoutUser(userId, refreshToken, accessToken);
     res.status(200).json({ message: "User logged out successfully" });
   } catch (err) {
     next(err);
