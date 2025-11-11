@@ -8,17 +8,25 @@ import {
   verifyLoginWithOTP,
 } from "../services/twoFactorService";
 import { logoutUser } from "../services/authServices";
+import {
+  Verify2FAWithOTPBody,
+  Verify2FAWithBackupCodeBody,
+  VerifyLoginWithOTPBody,
+  VerifyLoginWithBackupCodeBody,
+  AuthenticatedRequest,
+  LogoutBody,
+} from "../types/types";
 
 const prisma = new PrismaClient();
 
 export const setup2FAController = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction,
 ) => {
   try {
     // Get userId from req.user and using this, get user email from DB
-    const userId = (req as any).user.userId;
+    const userId = req.user.userId;
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -44,12 +52,12 @@ export const setup2FAController = async (
 };
 
 export const verify2FAWithOTPController = async (
-  req: Request,
+  req: AuthenticatedRequest & Request<{}, {}, Verify2FAWithOTPBody>,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.user.userId;
     const { otpCode, tempEncryptedSecret, backupCodes } = req.body;
 
     if (!otpCode || !tempEncryptedSecret || !backupCodes) {
@@ -81,12 +89,12 @@ export const verify2FAWithOTPController = async (
 };
 
 export const verify2FAWithBackupCodeController = async (
-  req: Request,
+  req: AuthenticatedRequest & Request<{}, {}, Verify2FAWithBackupCodeBody>,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-    const userId = (req as any).user.userId;
+    const userId = req.user.userId;
     const { backupCode, userEmail } = req.body;
 
     if (!backupCode || !userEmail) {
@@ -96,11 +104,11 @@ export const verify2FAWithBackupCodeController = async (
     if (typeof backupCode !== "string" || backupCode.length !== 7) {
       return res
         .status(400)
-        .json({ error: "Backup code must be 8 characters" });
+        .json({ error: "Backup code must be 7 characters" });
     }
 
     const result = await verify2FAWithBackupCodes(
-      userId,
+      userId.toString(),
       backupCode,
       userEmail,
     );
@@ -116,7 +124,7 @@ export const verify2FAWithBackupCodeController = async (
 };
 
 export const verifyLoginWithOTPController = async (
-  req: Request,
+  req: Request<{}, {}, VerifyLoginWithOTPBody>,
   res: Response,
   next: NextFunction,
 ) => {
@@ -140,7 +148,7 @@ export const verifyLoginWithOTPController = async (
 };
 
 export const verifyLoginWithBackupController = async (
-  req: Request,
+  req: Request<{}, {}, VerifyLoginWithBackupCodeBody>,
   res: Response,
   next: NextFunction,
 ) => {
@@ -153,7 +161,7 @@ export const verifyLoginWithBackupController = async (
     if (typeof backupCode !== "string" || backupCode.length !== 7) {
       return res
         .status(400)
-        .json({ error: "Backup code must be 8 characters" });
+        .json({ error: "Backup code must be 7 characters" });
     }
     const result = await verifyLoginWithBackupCodes(userId, backupCode);
 
@@ -170,7 +178,7 @@ export const verifyLoginWithBackupController = async (
 };
 
 export const logoutController = async (
-  req: Request,
+  req: AuthenticatedRequest & Request<{}, {}, LogoutBody>,
   res: Response,
   next: NextFunction,
 ) => {
@@ -183,7 +191,7 @@ export const logoutController = async (
     }
 
     const accessToken = authHeader.substring(7);
-    const userId = (req as any).user.userId;
+    const userId = req.user.userId;
     const refreshToken = req.body.refreshToken;
 
     if (!refreshToken)

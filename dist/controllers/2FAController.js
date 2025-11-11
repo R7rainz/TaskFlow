@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.logoutController = exports.verifyLoginWithBackupController = exports.verifyLoginWithOTPController = exports.verify2FAWithBackupCodeController = exports.verify2FAWithOTPController = exports.setup2FAController = void 0;
 const prisma_1 = require("../../generate/prisma");
 const twoFactorService_1 = require("../services/twoFactorService");
+const authServices_1 = require("../services/authServices");
 const prisma = new prisma_1.PrismaClient();
 const setup2FAController = async (req, res, next) => {
     try {
@@ -135,6 +136,11 @@ const logoutController = async (req, res, next) => {
         }
         const accessToken = authHeader.substring(7);
         const userId = req.user.userId;
+        const refreshToken = req.body.refreshToken;
+        if (!refreshToken)
+            return res.status(400).json({ message: "Refresh token required" });
+        await (0, authServices_1.logoutUser)(userId, refreshToken, accessToken);
+        res.status(200).json({ message: "Logged out successfully" });
     }
     catch (err) {
         next(err);
