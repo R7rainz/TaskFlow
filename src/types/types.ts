@@ -61,3 +61,26 @@ export interface JwtPayload {
 export interface AuthenticatedRequest extends Request {
   user: JwtPayload;
 }
+
+//2faController
+export interface Verify2FAWithOTPBody {
+  otpCode: string;
+  tempEncryptedSecret: string;
+  backupCodes: string[];
+}
+
+export interface Verify2FAWithBackupCodeBody {
+  userId: string;
+  backupCode: string;
+  userEmail: string;
+}
+
+export interface VerifyLoginWithOTPBody {
+  userId: string;
+  otpCode: string;
+}
+
+export interface VerifyLoginWithBackupCodeBody {
+  userId: string;
+  backupCode: string;
+}
