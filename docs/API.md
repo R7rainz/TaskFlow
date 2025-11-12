@@ -5,12 +5,14 @@ Base path: `/v1`
 Authentication: Bearer JWT (send `Authorization: Bearer <token>` header for protected endpoints)
 
 Contents
+
 - Authentication endpoints (signup, signin, refresh, logout)
 - Password reset (forgot/reset)
 - Protected profile
 - Two-factor authentication endpoints under `/v1/2fa`
 
 Common request/response notes
+
 - All requests and responses are JSON unless otherwise noted.
 - Error responses use appropriate HTTP status codes and include a `message` or `error` field.
 
@@ -19,6 +21,7 @@ Common request/response notes
 ## Endpoints
 
 ### POST /v1/signup
+
 Register a new user.
 
 Request body:
@@ -43,6 +46,7 @@ Response (201):
 ---
 
 ### POST /v1/signin
+
 Login with email/password. If user has 2FA enabled, the response will indicate `requires2Fa: true` and include `userId`.
 
 Request body:
@@ -52,10 +56,15 @@ Request body:
 ```
 
 Responses:
+
 - 200 (2FA required)
 
 ```json
-{ "message": "Two-factor authentication required", "requires2Fa": true, "userId": "..." }
+{
+  "message": "Two-factor authentication required",
+  "requires2Fa": true,
+  "userId": "..."
+}
 ```
 
 - 200 (successful login)
@@ -72,6 +81,7 @@ Responses:
 ---
 
 ### POST /v1/refresh
+
 Exchange a refresh token for a new access token (and optionally a new refresh token depending on implementation).
 
 Request body:
@@ -89,6 +99,7 @@ Response (200):
 ---
 
 ### POST /v1/forgot-password
+
 Request a password reset email (returns a reset token for testing environments).
 
 Request body:
@@ -106,6 +117,7 @@ Response (200):
 ---
 
 ### POST /v1/reset-password
+
 Reset password using the token sent to the user's email.
 
 Request body:
@@ -123,9 +135,11 @@ Response (200):
 ---
 
 ### POST /v1/logout
+
 Invalidate a refresh token and (optionally) the current access token.
 
 Headers:
+
 - Authorization: Bearer <access-token>
 
 Request body:
@@ -143,9 +157,11 @@ Response (200):
 ---
 
 ### GET /v1/profile
+
 Protected route. Returns the authenticated user's data.
 
 Headers:
+
 - Authorization: Bearer <access-token>
 
 Response (200):
@@ -161,9 +177,11 @@ Response (200):
 All endpoints under `/v1/2fa` are described below.
 
 ### GET /v1/2fa/setup
+
 Protected. Generate a TOTP secret and backup codes for the authenticated user.
 
 Headers:
+
 - Authorization: Bearer <access-token>
 
 Response (200):
@@ -178,6 +196,7 @@ Response (200):
 ```
 
 ### POST /v1/2fa/verify-otp
+
 Protected. Verify an OTP and enable 2FA.
 
 Request body:
@@ -193,6 +212,7 @@ Response (200):
 ```
 
 ### POST /v1/2fa/verify-backup
+
 Protected. Verify using a backup code (enables 2FA and returns new data).
 
 Request body:
@@ -208,6 +228,7 @@ Response (200):
 ```
 
 ### POST /v1/2fa/verify-loginOTP-2fa
+
 Verify an OTP for login flow when 2FA is required.
 
 Request body:
@@ -223,6 +244,7 @@ Response (200):
 ```
 
 ### POST /v1/2fa/verify-loginbackupCode-2fa
+
 Verify a backup code for login when 2FA is required.
 
 Request body:
