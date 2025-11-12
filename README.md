@@ -4,14 +4,11 @@
 
 > A simple, secure authentication backend (TypeScript + Express + Prisma) with optional 2FA support.
 
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-%2357A0CE.svg?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-16.x-green?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://github.com/R7rainz/TaskFlow/pulls)
 
 This project implements user registration, login, password reset, and optional two-factor authentication using TOTP. It is intended as a focused authentication microservice that you can adapt into a larger system.
-
-If you prefer a different name, suggestions: "AuthCore", "Gatekeeper", or "SecureAuthSvc".
 
 ## Features
 
