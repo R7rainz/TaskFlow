@@ -67,9 +67,9 @@ const verify2FAWithBackupCodeController = async (req, res, next) => {
         if (typeof backupCode !== "string" || backupCode.length !== 7) {
             return res
                 .status(400)
-                .json({ error: "Backup code must be 8 characters" });
+                .json({ error: "Backup code must be 7 characters" });
         }
-        const result = await (0, twoFactorService_1.verify2FAWithBackupCodes)(userId, backupCode, userEmail);
+        const result = await (0, twoFactorService_1.verify2FAWithBackupCodes)(userId.toString(), backupCode, userEmail);
         return res.json({
             message: "2FA verified successfully",
             backupCodes: result.backupCodes,
@@ -110,7 +110,7 @@ const verifyLoginWithBackupController = async (req, res, next) => {
         if (typeof backupCode !== "string" || backupCode.length !== 7) {
             return res
                 .status(400)
-                .json({ error: "Backup code must be 8 characters" });
+                .json({ error: "Backup code must be 7 characters" });
         }
         const result = await (0, twoFactorService_1.verifyLoginWithBackupCodes)(userId, backupCode);
         res.status(200).json({
@@ -132,14 +132,14 @@ const logoutController = async (req, res, next) => {
         if (!authHeader || !authHeader.startsWith("Bearer")) {
             return res
                 .status(401)
-                .json({ message: "Authorzation header missing or malformed" });
+                .json({ message: "Authorization header missing or malformed" });
         }
         const accessToken = authHeader.substring(7);
         const userId = req.user.userId;
         const refreshToken = req.body.refreshToken;
         if (!refreshToken)
             return res.status(400).json({ message: "Refresh token required" });
-        await (0, authServices_1.logoutUser)(userId, refreshToken, accessToken);
+        await (0, authServices_1.logoutUser)(userId.toString(), refreshToken, accessToken);
         res.status(200).json({ message: "Logged out successfully" });
     }
     catch (err) {

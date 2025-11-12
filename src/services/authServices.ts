@@ -25,13 +25,6 @@ export const registerUser = async (
 export const loginUser = async (email: string, password: string) => {
   const user = await prisma.user.findUnique({
     where: { email },
-    // select: {
-    //   id: true,
-    //   name: true,
-    //   email: true,
-    //   password: true,
-    //   twoFactorEnabled: true,
-    // },
   });
   if (!user) throw new Error("User not found, please register");
 
@@ -81,7 +74,7 @@ export const loginUser = async (email: string, password: string) => {
   };
 };
 
-export const refresh = async (userId: number, refreshToken: string) => {
+export const refresh = async (refreshToken: string) => {
   // Find the refresh token in the database
   const storedToken = await prisma.refreshToken.findUnique({
     where: { token: refreshToken },
@@ -97,10 +90,23 @@ export const refresh = async (userId: number, refreshToken: string) => {
     throw new Error("JWT_SECRET environment variable is not set");
   }
 
-  //generating new accessToken
-  const newAccessToken = jwt.sign({ userId: storedToken.userId }, jwtSecret, {
-    expiresIn: "15m",
+  const user = await prisma.user.findUnique({
+    where: { id: storedToken.userId },
+    select: { tokenVersion: true },
   });
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  //generating new accessToken
+  const newAccessToken = jwt.sign(
+    { userId: storedToken.userId, tokenVersion: user.tokenVersion },
+    jwtSecret,
+    {
+      expiresIn: "15m",
+    },
+  );
 
   return {
     accessToken: newAccessToken,
@@ -179,6 +185,17 @@ export const logoutUser = async (
   await prisma.refreshToken.deleteMany({
     where: { userId: parseInt(userId), token: refreshToken },
   });
+
+  return { success: true };
+};
+
+export const logoutAllDevices = async (userId: string) => {
+  await prisma.user.update({
+    where: { id: parseInt(userId) },
+    data: { tokenVersion: { increment: 1 } },
+  });
+
+  await prisma.refreshToken.deleteMany({ where: { userId: parseInt(userId) } });
 
   return { success: true };
 };

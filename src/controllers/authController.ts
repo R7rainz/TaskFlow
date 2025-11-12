@@ -6,17 +6,17 @@ import {
   initiatePasswordReset,
   resetPassword,
   logoutUser,
+  logoutAllDevices,
 } from "../services/authServices";
 import { sendResetEmail } from "../services/emailService";
 import {
-  AuthenticatedRequest,
   RefreshBody,
   ForgotPasswordBody,
   ResetPasswordBody,
-  LogoutBody,
   RegisterBody,
   LoginBody,
 } from "../types/types";
+
 //register function first
 export const register = async (
   req: Request<{}, {}, RegisterBody>,
@@ -79,8 +79,8 @@ export const refreshToken = async (
   next: NextFunction,
 ) => {
   try {
-    const { refreshToken, userId } = req.body;
-    const newTokens = await refresh(userId, refreshToken);
+    const { refreshToken } = req.body;
+    const newTokens = await refresh(refreshToken);
     res.json(newTokens);
   } catch (err) {
     next(err);
@@ -120,7 +120,7 @@ export const resetPasswordController = async (
 };
 
 export const logoutController = async (
-  req: AuthenticatedRequest & Request<{}, {}, LogoutBody>,
+  req: Request,
   res: Response,
   next: NextFunction,
 ) => {
@@ -133,7 +133,7 @@ export const logoutController = async (
     }
 
     const accessToken = authHeader.substring(7);
-    const userId = req.user.userId;
+    const userId = (req as any).user?.userId;
     const refreshToken = req.body.refreshToken;
 
     if (!refreshToken) {
@@ -142,8 +142,24 @@ export const logoutController = async (
         .json({ message: "Refresh token is required for logout" });
     }
 
-    await logoutUser(userId, refreshToken, accessToken);
+    await logoutUser(userId.toString(), refreshToken, accessToken);
     res.status(200).json({ message: "User logged out successfully" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const logoutAllDevicesController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const userId = (req as any).user?.userId;
+    await logoutAllDevices(userId.toString());
+    res
+      .status(200)
+      .json({ message: "Logged out from all devices successfully" });
   } catch (err) {
     next(err);
   }

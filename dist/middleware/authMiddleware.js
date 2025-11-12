@@ -29,7 +29,17 @@ const authenticate = async (req, res, next) => {
             return res.status(500).json({ message: "JWT secret not configured" });
         }
         const decoded = jsonwebtoken_1.default.verify(token, jwtsecret);
+        if (typeof decoded === "string") {
+            return res.status(401).json({ message: "Invalid token" });
+        }
         req.user = decoded;
+        const dbUser = await prisma.user.findUnique({
+            where: { id: decoded.userId },
+            select: { tokenVersion: true },
+        });
+        if (!dbUser || dbUser.tokenVersion !== decoded.tokenVersion) {
+            return res.status(401).json({ message: "Token revoked" });
+        }
         next();
     }
     catch (err) {

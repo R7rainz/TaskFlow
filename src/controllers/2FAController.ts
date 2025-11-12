@@ -9,24 +9,20 @@ import {
 } from "../services/twoFactorService";
 import { logoutUser } from "../services/authServices";
 import {
-  Verify2FAWithOTPBody,
-  Verify2FAWithBackupCodeBody,
   VerifyLoginWithOTPBody,
   VerifyLoginWithBackupCodeBody,
-  AuthenticatedRequest,
-  LogoutBody,
 } from "../types/types";
 
 const prisma = new PrismaClient();
 
 export const setup2FAController = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction,
 ) => {
   try {
     // Get userId from req.user and using this, get user email from DB
-    const userId = req.user.userId;
+    const userId = (req as any).user?.userId;
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -52,12 +48,12 @@ export const setup2FAController = async (
 };
 
 export const verify2FAWithOTPController = async (
-  req: AuthenticatedRequest & Request<{}, {}, Verify2FAWithOTPBody>,
+  req: Request,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-    const userId = req.user.userId;
+    const userId = (req as any).user?.userId;
     const { otpCode, tempEncryptedSecret, backupCodes } = req.body;
 
     if (!otpCode || !tempEncryptedSecret || !backupCodes) {
@@ -89,12 +85,12 @@ export const verify2FAWithOTPController = async (
 };
 
 export const verify2FAWithBackupCodeController = async (
-  req: AuthenticatedRequest & Request<{}, {}, Verify2FAWithBackupCodeBody>,
+  req: Request,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-    const userId = req.user.userId;
+    const userId = (req as any).user?.userId;
     const { backupCode, userEmail } = req.body;
 
     if (!backupCode || !userEmail) {
@@ -178,7 +174,7 @@ export const verifyLoginWithBackupController = async (
 };
 
 export const logoutController = async (
-  req: AuthenticatedRequest & Request<{}, {}, LogoutBody>,
+  req: Request,
   res: Response,
   next: NextFunction,
 ) => {
@@ -187,17 +183,17 @@ export const logoutController = async (
     if (!authHeader || !authHeader.startsWith("Bearer")) {
       return res
         .status(401)
-        .json({ message: "Authorzation header missing or malformed" });
+        .json({ message: "Authorization header missing or malformed" });
     }
 
     const accessToken = authHeader.substring(7);
-    const userId = req.user.userId;
+    const userId = (req as any).user?.userId;
     const refreshToken = req.body.refreshToken;
 
     if (!refreshToken)
       return res.status(400).json({ message: "Refresh token required" });
 
-    await logoutUser(userId, refreshToken, accessToken);
+    await logoutUser(userId.toString(), refreshToken, accessToken);
 
     res.status(200).json({ message: "Logged out successfully" });
   } catch (err) {

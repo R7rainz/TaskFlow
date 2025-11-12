@@ -1,4 +1,6 @@
-import { Request } from "express";
+import { Request, RequestHandler } from "express";
+import { ParamsDictionary } from "express-serve-static-core";
+import { ParsedQs } from "qs";
 
 export interface RegisterBody {
   name: string;
@@ -58,9 +60,9 @@ export interface JwtPayload {
   exp?: number;
 }
 
-export interface AuthenticatedRequest extends Request {
-  user: JwtPayload;
-}
+// export interface AuthenticatedRequest extends Request {
+//   user: JwtPayload;
+// }
 
 //2faController
 export interface Verify2FAWithOTPBody {
@@ -84,3 +86,11 @@ export interface VerifyLoginWithBackupCodeBody {
   userId: string;
   backupCode: string;
 }
+
+export type AuthenitcatedHandler = RequestHandler<
+  ParamsDictionary,
+  any,
+  any,
+  ParsedQs,
+  Record<string, any>
+>;

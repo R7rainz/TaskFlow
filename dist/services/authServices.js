@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.logoutUser = exports.resetPassword = exports.initiatePasswordReset = exports.refresh = exports.loginUser = exports.registerUser = void 0;
+exports.logoutAllDevices = exports.logoutUser = exports.resetPassword = exports.initiatePasswordReset = exports.refresh = exports.loginUser = exports.registerUser = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const prisma_1 = require("../../generate/prisma");
@@ -24,13 +24,6 @@ exports.registerUser = registerUser;
 const loginUser = async (email, password) => {
     const user = await prisma.user.findUnique({
         where: { email },
-        // select: {
-        //   id: true,
-        //   name: true,
-        //   email: true,
-        //   password: true,
-        //   twoFactorEnabled: true,
-        // },
     });
     if (!user)
         throw new Error("User not found, please register");
@@ -63,7 +56,7 @@ const loginUser = async (email, password) => {
     catch (err) {
         throw new Error("Failed to create refresh token");
     }
-    const token = jsonwebtoken_1.default.sign({ userId: user.id }, jwtSecret, {
+    const token = jsonwebtoken_1.default.sign({ userId: user.id, tokenVersion: user.tokenVersion }, jwtSecret, {
         expiresIn: "15m",
     });
     return {
@@ -73,7 +66,7 @@ const loginUser = async (email, password) => {
     };
 };
 exports.loginUser = loginUser;
-const refresh = async (userId, refreshToken) => {
+const refresh = async (refreshToken) => {
     // Find the refresh token in the database
     const storedToken = await prisma.refreshToken.findUnique({
         where: { token: refreshToken },
@@ -86,8 +79,15 @@ const refresh = async (userId, refreshToken) => {
     if (!jwtSecret) {
         throw new Error("JWT_SECRET environment variable is not set");
     }
+    const user = await prisma.user.findUnique({
+        where: { id: storedToken.userId },
+        select: { tokenVersion: true },
+    });
+    if (!user) {
+        throw new Error("User not found");
+    }
     //generating new accessToken
-    const newAccessToken = jsonwebtoken_1.default.sign({ userId: storedToken.userId }, jwtSecret, {
+    const newAccessToken = jsonwebtoken_1.default.sign({ userId: storedToken.userId, tokenVersion: user.tokenVersion }, jwtSecret, {
         expiresIn: "15m",
     });
     return {
@@ -156,3 +156,12 @@ const logoutUser = async (userId, refreshToken, accessToken) => {
     return { success: true };
 };
 exports.logoutUser = logoutUser;
+const logoutAllDevices = async (userId) => {
+    await prisma.user.update({
+        where: { id: parseInt(userId) },
+        data: { tokenVersion: { increment: 1 } },
+    });
+    await prisma.refreshToken.deleteMany({ where: { userId: parseInt(userId) } });
+    return { success: true };
+};
+exports.logoutAllDevices = logoutAllDevices;

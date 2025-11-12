@@ -1,12 +1,12 @@
-import { Response, NextFunction } from "express";
+import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { PrismaClient } from "../../generate/prisma";
-import { JwtPayload, AuthenticateRequest } from "../types/types";
+import { JwtPayload } from "../types/types";
 
 const prisma = new PrismaClient();
 
 export const authenticate = async (
-  req: AuthenticateRequest,
+  req: Request,
   res: Response,
   next: NextFunction,
 ) => {
@@ -38,7 +38,7 @@ export const authenticate = async (
     if (typeof decoded === "string") {
       return res.status(401).json({ message: "Invalid token" });
     }
-    req.user = decoded;
+    (req as any).user = decoded;
 
     const dbUser = await prisma.user.findUnique({
       where: { id: decoded.userId },

@@ -7,6 +7,7 @@ const express_1 = __importDefault(require("express"));
 const v1_1 = require("./routes/v1");
 const helmet_1 = __importDefault(require("helmet"));
 const cors_1 = __importDefault(require("cors"));
+const schedulerServices_1 = require("./services/schedulerServices");
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
 app.use((0, helmet_1.default)({
@@ -26,4 +27,5 @@ app.use((0, cors_1.default)({
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
 }));
 app.use("/api/v1", v1_1.router);
+(0, schedulerServices_1.startScheduleJobs)();
 app.listen(process.env.PORT || 8000);

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.logoutController = exports.resetPasswordController = exports.forgotPassword = exports.refreshToken = exports.login = exports.register = void 0;
+exports.logoutAllDevicesController = exports.logoutController = exports.resetPasswordController = exports.forgotPassword = exports.refreshToken = exports.login = exports.register = void 0;
 const authServices_1 = require("../services/authServices");
 const emailService_1 = require("../services/emailService");
 //register function first
@@ -52,8 +52,8 @@ const login = async (req, res, next) => {
 exports.login = login;
 const refreshToken = async (req, res, next) => {
     try {
-        const { refreshToken, userId } = req.body;
-        const newTokens = await (0, authServices_1.refresh)(userId, refreshToken);
+        const { refreshToken } = req.body;
+        const newTokens = await (0, authServices_1.refresh)(refreshToken);
         res.json(newTokens);
     }
     catch (err) {
@@ -61,19 +61,6 @@ const refreshToken = async (req, res, next) => {
     }
 };
 exports.refreshToken = refreshToken;
-// export const forgotPassword = async (
-//   req: Request,
-//   res: Response,
-//   next: NextFunction
-// ) => {
-//   try {
-//     const { email } = req.body;
-//     await initiatePasswordReset(email);
-//     res.status(200).json({ message: "Password reset email sent" });
-//   } catch (err) {
-//     next(err);
-//   }
-// };
 const forgotPassword = async (req, res, next) => {
     try {
         const { email } = req.body;
@@ -116,7 +103,7 @@ const logoutController = async (req, res, next) => {
                 .status(400)
                 .json({ message: "Refresh token is required for logout" });
         }
-        await (0, authServices_1.logoutUser)(userId, refreshToken, accessToken);
+        await (0, authServices_1.logoutUser)(userId.toString(), refreshToken, accessToken);
         res.status(200).json({ message: "User logged out successfully" });
     }
     catch (err) {
@@ -124,3 +111,16 @@ const logoutController = async (req, res, next) => {
     }
 };
 exports.logoutController = logoutController;
+const logoutAllDevicesController = async (req, res, next) => {
+    try {
+        const userId = req.user.userId;
+        await (0, authServices_1.logoutAllDevices)(userId.toString());
+        res
+            .status(200)
+            .json({ message: "Logged out from all devices successfully" });
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.logoutAllDevicesController = logoutAllDevicesController;
