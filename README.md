@@ -1,6 +1,14 @@
-# TaskFlow
+# TaskFlow 
+
+![TaskFlow logo](https://img.shields.io/badge/TaskFlow-Auth-blue?style=for-the-badge&logo=lock)
 
 > A simple, secure authentication backend (TypeScript + Express + Prisma) with optional 2FA support.
+
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-%2357A0CE.svg?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-16.x-green?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://github.com/R7rainz/TaskFlow/pulls)
+
 
 This project implements user registration, login, password reset, and optional two-factor authentication using TOTP. It is intended as a focused authentication microservice that you can adapt into a larger system.
 
@@ -88,6 +96,49 @@ pnpm prisma studio         # open Prisma Studio
 
 - `dist/` (compiled JS) is ignored by `.gitignore`. Build artifacts should not be committed. If you accidentally committed `dist/` in the past, the repository has a cleanup commit to remove tracked `dist/` files and `.gitignore` prevents re-adding them.
 - Keep secrets out of git. This repository's `.gitignore` already contains `.env*` patterns.
+
+## Project structure
+
+Brief overview of the primary files and folders you'll see in this repo:
+
+- `src/` — TypeScript source files
+	- `index.ts` — application entry point
+	- `controllers/` — Express controllers (auth, 2FA)
+	- `services/` — business logic and integrations (authServices, emailService, twoFactorService)
+	- `routes/` — route definitions (v1)
+	- `middleware/` — Express middleware (auth, rate limiting)
+	- `validators/` — request validation logic
+	- `types/` — shared TypeScript types
+- `prisma/` — Prisma schema and migrations
+- `generate/` — generated Prisma client (do not commit; listed for context)
+- `.env*` and `prod.env` — environment variable files (ignored in git)
+- `README.md`, `package.json`, `tsconfig.json`, `Dockerfile` — repo metadata and build config
+
+This structure keeps clear separation between HTTP handling (controllers/routes) and business logic (services), making unit testing and maintenance easier.
+
+## Maintenance & contribution guidelines
+
+This project follows a lightweight maintenance workflow to keep the repo clean and stable:
+
+- Branching: use topic branches from `master` (or create a `main` branch if you prefer). Prefix branch names with the issue or feature, e.g. `feat/2fa-setup` or `fix/login-guard`.
+- Commits: follow Conventional Commits (e.g., `feat(...)`, `fix(...)`, `chore(...)`) so changelogs can be generated later.
+- Pull requests: open PRs for all changes; include a description of the change and link to any related issues. Keep PRs small and focused.
+- Code style: keep TypeScript strict (tsconfig) and prefer small, well-tested functions in `services/`.
+- Tests: add unit tests (Jest/Vitest) for `services/` and integration tests (supertest) for critical endpoints.
+
+### Releasing and dependency updates
+
+- Use `pnpm` to manage dependencies. Run `pnpm up` to update dependencies and test locally before committing.
+- Consider Dependabot or GitHub Actions to automatically open PRs for dependency updates.
+
+### Security and secrets
+
+- Never commit secrets. Use `.gitignore` (already configured) and keep production secrets in a secret manager or via the deployment platform.
+- Rotate JWT/refresh secrets periodically and store them in a secure vault.
+
+## Support & contact
+
+For questions or to report bugs, open an issue in the repository. If you want direct help with setup, tell me what environment you deploy to (Docker, DigitalOcean, Kubernetes) and I can provide tailored instructions.
 
 ## Docker (deployment)
 
