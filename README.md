@@ -181,17 +181,3 @@ If you plan to continue development:
 1. Open issues for features you want (2FA UX, refresh token rotation, session invalidation)
 2. Add tests for critical flows (login, registration, password reset)
 3. Harden token handling and add rate limits where needed
-
-## License
-
-Choose a license: MIT is a common permissive choice. Add a `LICENSE` file if you want.
-
----
-
-If you'd like, I can also:
-
-- add a short `README` badge and a minimal `LICENSE` file;
-- add example `.env.example` (without secrets);
-- create basic tests and CI pipeline templates.
-
-Tell me which extras you want and I'll add them next.
