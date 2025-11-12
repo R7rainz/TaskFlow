@@ -1,4 +1,4 @@
-# TaskFlow 
+# TaskFlow
 
 ![TaskFlow logo](https://img.shields.io/badge/TaskFlow-Auth-blue?style=for-the-badge&logo=lock)
 
@@ -8,7 +8,6 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-%2357A0CE.svg?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-16.x-green?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://github.com/R7rainz/TaskFlow/pulls)
-
 
 This project implements user registration, login, password reset, and optional two-factor authentication using TOTP. It is intended as a focused authentication microservice that you can adapt into a larger system.
 
@@ -102,13 +101,13 @@ pnpm prisma studio         # open Prisma Studio
 Brief overview of the primary files and folders you'll see in this repo:
 
 - `src/` — TypeScript source files
-	- `index.ts` — application entry point
-	- `controllers/` — Express controllers (auth, 2FA)
-	- `services/` — business logic and integrations (authServices, emailService, twoFactorService)
-	- `routes/` — route definitions (v1)
-	- `middleware/` — Express middleware (auth, rate limiting)
-	- `validators/` — request validation logic
-	- `types/` — shared TypeScript types
+  - `index.ts` — application entry point
+  - `controllers/` — Express controllers (auth, 2FA)
+  - `services/` — business logic and integrations (authServices, emailService, twoFactorService)
+  - `routes/` — route definitions (v1)
+  - `middleware/` — Express middleware (auth, rate limiting)
+  - `validators/` — request validation logic
+  - `types/` — shared TypeScript types
 - `prisma/` — Prisma schema and migrations
 - `generate/` — generated Prisma client (do not commit; listed for context)
 - `.env*` and `prod.env` — environment variable files (ignored in git)
