@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import {
   initiatePasswordReset,
+  logoutAllDevices,
   logoutUser,
   refresh,
   resetPassword,
@@ -305,7 +306,41 @@ describe("logoutUser", () => {
     expect(mockPrisma.refreshToken.deleteMany).toHaveBeenCalled();
   });
 
-  it("should throw error for invalid access token format", async () => {});
+  it("should throw error for invalid access token format", async () => {
+    const invalidToken = "header.payload";
 
-  it("should throw error for invalid JWT token", async () => {});
+    await expect(
+      logoutUser("1", "refresh_token_123", invalidToken),
+    ).rejects.toThrow("Invalid access token format");
+  });
+
+  it("should throw error for invalid JWT token", async () => {
+    mockedJwt.decode.mockReturnValue(null);
+
+    await expect(
+      logoutUser("1", "refresh_token_123", "header.payload.signature"),
+    ).rejects.toThrow("Invalid JWT token: cannot decide expiry");
+  });
+});
+
+describe("logoutAllDevices", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+  it("should logout the user from all the devices", async () => {
+    mockPrisma.user.update.mockResolvedValue({} as any);
+    mockPrisma.refreshToken.deleteMany.mockResolvedValue({} as any);
+
+    const result = await logoutAllDevices("1");
+
+    expect(result).toEqual({ success: true });
+
+    expect(mockPrisma.user.update).toHaveBeenCalledWith({
+      where: { id: 1 },
+      data: { tokenVersion: { increment: 1 } },
+    });
+    expect(mockPrisma.refreshToken.deleteMany).toHaveBeenCalledWith({
+      where: { id: 1 },
+    });
+  });
 });
