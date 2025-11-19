@@ -124,6 +124,28 @@ describe("registerUser", () => {
 
     expect(result).toEqual(mockUser);
   });
+
+  it("should throw error when user already exists", async () => {
+    const existingUser = {
+      id: 1,
+      name: "Existing User",
+      email: "existing@example.com",
+      password: "hashedPassword",
+      tokenVersion: 1,
+      twoFactorEnabled: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      twoFactorSecret: null,
+      twoFactorBackupCodes: null,
+      twoFactorSetupAt: null,
+    };
+
+    mockPrisma.user.findUnique.mockResolvedValue(existingUser);
+
+    await expect(
+      registerUser("New User", "existing@example.com", "Password123!"),
+    ).rejects.toThrow("User Already Exists");
+  });
 });
 
 describe("loginUser", () => {
@@ -168,6 +190,37 @@ describe("loginUser", () => {
     });
 
     expect(result.token).toEqual("mockToken");
+  });
+
+  it("should throw error for non-existent user", async () => {
+    mockPrisma.user.findUnique.mockResolvedValue(null);
+
+    await expect(
+      loginUser("nonexistent@example.com", "anypassword"),
+    ).rejects.toThrow("User not found, please register");
+  });
+
+  it("should throw error for incorrect password", async () => {
+    const mockUserDB = {
+      id: 1,
+      name: "Test User",
+      email: "test@example.com",
+      password: "hashedPassword123!",
+      tokenVersion: 1,
+      twoFactorEnabled: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      twoFactorSecret: null,
+      twoFactorBackupCodes: null,
+      twoFactorSetupAt: null,
+    };
+
+    mockPrisma.user.findUnique.mockResolvedValueOnce(mockUserDB);
+    mockedBcrypt.compare.mockResolvedValue(false as never);
+
+    await expect(loginUser("test@example.com", "password123!")).rejects.toThrow(
+      "Invalid password",
+    );
   });
 });
 
@@ -340,7 +393,7 @@ describe("logoutAllDevices", () => {
       data: { tokenVersion: { increment: 1 } },
     });
     expect(mockPrisma.refreshToken.deleteMany).toHaveBeenCalledWith({
-      where: { id: 1 },
+      where: { userId: 1 },
     });
   });
 });
